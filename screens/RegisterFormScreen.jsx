@@ -1,48 +1,51 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import axios from 'axios'; 
 
 export const RegisterFormScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
-    const [dateOfBirth, setDateOfBirth] = useState('');
-    const [gender, setGender] = useState('');
+    const [phone, setPhone] = useState('');
+    const [address, setAddress] = useState('');
 
-    const auth = getAuth(); // Obteniendo el objeto de autenticación de Firebase
+    const auth = getAuth(); 
 
-    const handleRegister = () => {
-        // Validar que los campos no estén vacíos
-        if (!email || !password || !firstName || !lastName || !dateOfBirth || !gender) {
+    const handleRegister = async () => {
+        if (!email || !password || !firstName || !lastName || !phone || !address) {
             Alert.alert('Todos los campos son requeridos');
             return;
         }
 
-        // Crear el usuario en Firebase Auth
-        createUserWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
-                // Usuario creado exitosamente
-                console.log('Usuario registrado:', userCredential.user);
-                navigation.navigate('Pets');
-            })
-            .catch((error) => {
-                // Si hay un error, mostrar mensaje de error
-                Alert.alert('Error al registrar el usuario');
-                console.error('Error al registrar:', error);
-            });
-    };
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const idToken = await userCredential.user.getIdToken();
 
-    // Función para formatear la fecha de nacimiento con barras o guiones
-    const formatDOB = (dob) => {
-        // Reemplazar los guiones por barras
-        dob = dob.replace(/-/g, '/');
-        // Separar la fecha en partes por las barras
-        const parts = dob.split('/');
-        // Si hay menos de 3 partes, no es una fecha completa
-        if (parts.length < 3) return dob;
-        // Formatear la fecha como dd/mm/yyyy
-        return parts[2] + '/' + parts[1] + '/' + parts[0];
+            
+            const response = await axios.post('http://192.168.0.10:8000/api/register/', {
+                first_name: firstName,
+                last_name: lastName,
+                email: email,
+                phone: phone,
+                address: address
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`
+                }
+            });
+            if (response) {
+                Alert.alert('Registro exitoso', 'Cliente registrado con éxito');
+                navigation.navigate('Pets');
+            } else {
+                Alert.alert('Error', 'Hubo un problema al registrar el cliente en el servidor');
+            }
+        } catch (error) {
+            console.error('Error al registrar en el servidor:'+ error);
+            Alert.alert('Error', 'Hubo un problema al registrar el cliente en el servidor');
+        }
     };
 
     return (
@@ -75,15 +78,15 @@ export const RegisterFormScreen = ({ navigation }) => {
             />
             <TextInput
                 style={styles.input}
-                placeholder="Fecha de Nacimiento (dd/mm/yyyy)"
-                value={formatDOB(dateOfBirth)}
-                onChangeText={(text) => setDateOfBirth(formatDOB(text))}
+                placeholder="Teléfono"
+                value={phone}
+                onChangeText={setPhone}
             />
             <TextInput
                 style={styles.input}
-                placeholder="Género"
-                value={gender}
-                onChangeText={setGender}
+                placeholder="Dirección"
+                value={address}
+                onChangeText={setAddress}
             />
             <TouchableOpacity style={styles.button} onPress={handleRegister}>
                 <Text style={styles.buttonText}>Registrarse</Text>

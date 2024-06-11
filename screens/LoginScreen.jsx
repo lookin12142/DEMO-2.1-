@@ -14,16 +14,14 @@ export const LoginScreen = ({ navigation }) => {
   const handleLogin = () => {
     signInWithEmailAndPassword(auth, email, password) 
       .then((userCredential) => {
-        console.log('Bienvenido:', userCredential.user)
         navigation.navigate('Pets')
       })
       .catch((error) => {
         Alert.alert('Usuario o contraseña Incorrecta')
-        console.error('Error al iniciar sesión:', error)
       });
   };
   
-  return (
+  return (  
     <ImageBackground source={{ uri: 'https://i.pinimg.com/564x/f5/54/11/f554112d0e72e2216764f01a5a00b360.jpg' }} style={styles.container}>
       <View style={styles.overlay}>
         <Text style={styles.title}>Iniciar Sesión</Text>
@@ -48,7 +46,6 @@ export const LoginScreen = ({ navigation }) => {
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Entrar</Text>
         </TouchableOpacity>
-        {/* Modificación del botón "Registrarse" */}
         <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('RegisterForm')}>
             <Text style={styles.buttonText}>Registrarse</Text>
         </TouchableOpacity>
