@@ -1,57 +1,65 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Button, StyleSheet, Alert } from 'react-native';
-import { useStripe } from '@stripe/stripe-react-native';
-import { useCarrito } from './CarritoContext';
+// src/CarritoScreen.js
+import React, { useContext } from 'react';
+import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { CarritoContext } from './CarritoContext';
 
 export const CarritoScreen = ({ navigation }) => {
-  const { carrito, eliminarDelCarrito, limpiarCarrito } = useCarrito();
-  const [total, setTotal] = useState(0);
-  const { confirmPayment } = useStripe();
+  const { cart, removeFromCart, clearCart, getTotal, createOrder } = useContext(CarritoContext);
 
-  useEffect(() => {
-    const total = carrito.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-    setTotal(total);
-  }, [carrito]);
-
-  const handlePayPress = async () => {
-    // Aquí deberías obtener el client secret desde tu backend
-    const clientSecret = await getClientSecretFromBackend(total);
-
-    const { error, paymentIntent } = await confirmPayment(clientSecret, {
-      type: 'Card',
-      billingDetails: {
-        email: 'email@example.com', // Obtener detalles del usuario
-      },
-    });
-
-    if (error) {
-      Alert.alert(`Payment failed: ${error.message}`);
-    } else if (paymentIntent) {
-      Alert.alert('Payment successful');
-      limpiarCarrito();
-    }
+  const handlePurchase = async () => {
+    Alert.alert(
+      "Confirmar Compra",
+      "¿Deseas realizar la compra?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Comprar",
+          onPress: async () => {
+            try {
+              const customer = { /* datos del cliente */ };
+              await createOrder(customer, cart);
+              clearCart();
+              Alert.alert("Compra realizada", "¡Gracias por tu compra!");
+            } catch (error) {
+              Alert.alert("Error", "Hubo un problema al realizar la compra.");
+            }
+          }
+        }
+      ]
+    );
   };
 
   return (
     <View style={styles.container}>
       <FlatList
-        data={carrito}
+        data={cart}
         renderItem={({ item }) => (
           <View style={styles.productContainer}>
-            <Text style={styles.productName}>{item.product.name}</Text>
-            <Text style={styles.productDescription}>{item.product.description}</Text>
-            <Text style={styles.productPrice}>{item.product.price}</Text>
+            <Image source={{ uri: item.image }} style={styles.productImage} />
+            <Text style={styles.productName}>{item.nombre}</Text>
+            <Text style={styles.productPrice}>S/{item.price}</Text>
             <Text style={styles.productQuantity}>Cantidad: {item.quantity}</Text>
-            <Button title="Eliminar del carrito" onPress={() => eliminarDelCarrito(item.product.id)} />
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity onPress={() => removeFromCart(item.id)}>
+                <Text style={styles.buttonText}>Eliminar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
-        keyExtractor={item => item.product.id.toString()}
+        keyExtractor={(item) => item.id.toString()}
       />
-
-      <Text style={styles.total}>Total: {total}</Text>
-
-      <Button title="Comprar" onPress={handlePayPress} />
-      <Button title="Limpiar carrito" onPress={limpiarCarrito} />
+      <View style={styles.totalContainer}>
+        <Text style={styles.totalText}>Total: S/{getTotal()}</Text>
+        <TouchableOpacity style={styles.purchaseButton} onPress={handlePurchase}>
+          <Text style={styles.purchaseButtonText}>Comprar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.clearButton} onPress={clearCart}>
+          <Text style={styles.clearButtonText}>Vaciar Carrito</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -69,13 +77,13 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 10,
   },
+  productImage: {
+    width: '100%',
+    height: 200,
+  },
   productName: {
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  productDescription: {
-    fontSize: 14,
-    color: 'gray',
     marginTop: 10,
   },
   productPrice: {
@@ -87,10 +95,47 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 10,
   },
-  total: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'right',
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: 10,
   },
+  buttonText: {
+    fontSize: 16,
+    color: 'red',
+  },
+  totalContainer: {
+    padding: 10,
+    borderTopWidth: 1,
+    borderColor: 'gray',
+    marginTop: 10,
+  },
+  totalText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  purchaseButton: {
+    backgroundColor: 'green',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  purchaseButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  clearButton: {
+    backgroundColor: 'red',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  clearButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+  },
 });
+
+export default CarritoScreen;
